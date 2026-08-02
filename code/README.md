@@ -8,38 +8,8 @@ to the receiving user, and writes `output.csv`.
 A **hybrid of a deterministic safety gate and an LLM judgement call**, fed by **two fused retrieval
 branches**.
 
-```
-                    dataset/*.csv                media/ (images, voice)
-                          │                              │
-                          ▼                              ▼
-                    SQLite (build-db)          Gemini OCR + ASR, cached once
-                          │                              │
-                          └──────────┬───────────────────┘
-                                     ▼
-                        ┌────────────────────────┐
-                        │   context assembly     │   MessageRoutingContext
-                        │                        │   = message + media analysis
-                        │  ┌──────────────────┐  │     + user + group/business
-                        │  │ evidence fusion  │  │     + evidence + features
-                        │  │  SQL ⋈ vector    │  │
-                        │  └──────────────────┘  │
-                        └───────────┬────────────┘
-                                    ▼
-                          ┌──────────────────┐
-                          │   safety gate    │  deterministic, pre-LLM
-                          └───┬──────────┬───┘
-                    hard scam │          │ everything else
-                              ▼          ▼
-                    mute (locked)   LLM decision ──▶ notify / digest / mute
-                    type still           │  instructor-validated, temp 0
-                    classified           │  optional agentic evidence loop
-                                         │  provider failover, free tier first
-                                         ▼
-                         cache/routing_results.jsonl  (resumable)
-                                         │
-                                         ▼
-                                    output.csv
-```
+
+<img width="860" height="880" alt="image" src="https://github.com/user-attachments/assets/5230b81b-30ed-465f-a6f0-a41bfb5b2fec" />
 
 Every stage is a typed Pydantic model (`schemas.py`), so the boundary between retrieval, gating, and
 the LLM is explicit rather than a bag of dicts.
