@@ -69,10 +69,13 @@ cp .env.example .env      # then fill in the keys
 
 | Variable | Needed for |
 |---|---|
-| `GEMINI_API_KEY` | routing calls and one-time media analysis |
+| `GEMINI_API_KEY` | routing calls (default provider) and the one-time media analysis |
+| `ANTHROPIC_AUTH_TOKEN` + `ANTHROPIC_BASE_URL` | OrcaRouter, used as failover or via `LLM_PROVIDER=orcarouter` |
+| `OPENROUTER_API_KEY` | optional second failover |
 | `GROQ_API_KEY` | only if you set `LLM_PROVIDER=groq` |
 
-Keys are read from the environment only. `.env` is gitignored.
+Keys are read from the environment only. `.env` is gitignored. `cache/media_analysis.json` is
+committed, so the router runs without a media key.
 
 ## Run
 
@@ -86,19 +89,27 @@ python code/main.py route        # route all messages, writes output.csv
 early and you want the CSV as-is, `python code/main.py finalize` writes it with safe defaults for
 whatever is missing.
 
-Evaluate against the 30 labelled samples:
+Evaluate against the 30 labelled samples, routing them first if nothing is cached:
 
 ```bash
-python code/main.py route --table sample_messages
-python code/evaluation/main.py
+python code/main.py evaluate
 ```
 
-### Provider
+### Providers and failover
 
-Defaults to Gemini (`gemini-flash-lite-latest`). Groq's free tier caps at 100k tokens/day, which a full
-run plus iteration exceeds. To use Groq anyway: `LLM_PROVIDER=groq python code/main.py route`.
+Defaults to Gemini (`gemini-flash-lite-latest`). Set `LLM_PROVIDER` to `orcarouter`, `openrouter`, or
+`groq` to choose another. When the active provider's quota runs out mid-run the router fails over to
+the next one in `PROVIDER_FAILOVER` that has a key, rather than ending the run; providers without a
+key are skipped. Every decision records the provider and model that answered, so a run spanning
+providers stays auditable.
+
+Free-tier caps are the real constraint. Groq allows 100k tokens/day, which one full run plus a little
+iteration exceeds. Gemini's caps are per model, from 500 requests/day down to 20 for some.
 
 ## Results on the labelled samples
+
+Scored with `python code/main.py evaluate`, on Gemini, in the configuration that produced the shipped
+`output.csv`:
 
 | Metric | Score |
 |---|---|
@@ -106,6 +117,14 @@ run plus iteration exceeds. To use Groq anyway: `LLM_PROVIDER=groq python code/m
 | message_type accuracy | 27/30 = **90.0%** |
 | both correct | 27/30 = **90.0%** |
 | evidence overlap with ground truth | 21/28 = **75.0%** |
+
+**One caveat about `output.csv`.** It was generated before the media-retrieval fix described below
+landed. Re-running the router now scores **78.6%** on evidence rather than 75.0%, because media-only
+messages retrieve evidence that they previously could not. The shipped file was not regenerated
+because every provider's daily free-tier quota was exhausted before the run finished, and shipping a
+complete, verified file was preferable to one with a quarter of its rows backfilled with safe
+defaults. Everything else about the file is unchanged: 110 rows, contract-valid, `python
+code/audit_op.py` passes, no fallback rows.
 
 Confidence spans 0.85–0.95, mean 0.91.
 
@@ -121,6 +140,45 @@ reminder is both an `event` and a `booking`, which `business_update` also covers
 mean rules targeting one example each out of thirty, which memorises the sample set instead of
 generalising, so tuning stopped here.
 
+## Two things worth reading about
+
+### Media messages were retrieving no evidence at all
+
+`as_context()` labels media for the LLM to read - `"Media description: ...\nVoice transcript: ..."` -
+and that labelled string was also being used as the embedding query. The boilerplate diluted the
+vector badly. On one voice note, cosine similarity against the correct historical message fell from
+**0.62 to 0.39**, under the retrieval threshold, so the message came back with no evidence whatsoever.
+`as_query_text()` now supplies the bare words for embedding while the prompt keeps the labelled form.
+Evidence overlap rose 75.0% -> 78.6%.
+
+The lesson generalises: text formatted for a human reader is not the right text to embed.
+
+### An agentic evidence loop, measured and left off
+
+`AGENT_ENABLED=1` turns on a tool-calling loop where the model may call `search_history` (with its own
+query wording) or `find_messages_from_sender` when the retrieved evidence looks unrelated, then decide
+with what it finds. Planning is a separate call from deciding, because a model asked to do both in one
+response commits to an answer and then never requests a lookup. Tools take no `user_id`: they bind to
+the message being routed, so evidence cannot reference another user's history by construction.
+
+The tools work - `search_history("water supply tanker tank cleaning")` retrieves exactly the message
+ground truth cites. The **trigger** does not. The agent reliably notices it should look harder only
+when evidence is empty; the remaining misses all return three topically plausible but wrong messages,
+and it cannot tell those from correct ones without already knowing the answer.
+
+Measured against the deterministic path on the same 30 samples:
+
+| | deterministic | agentic |
+|---|---|---|
+| action | **100%** | 96.7% |
+| message_type | 90.0% | 90.0% |
+| evidence | 78.6% | 78.6% |
+| runtime | ~1.8 min | 3m25s |
+
+It fired on 2 of 26 LLM-decided messages and improved neither. So it ships behind a flag rather than
+as the default, and the deterministic fusion remains the shipped path. Kept in the tree because the
+negative result is the useful part.
+
 ## Files
 
 | File | Role |
@@ -135,4 +193,6 @@ generalising, so tuning stopped here.
 | `router.py` | prompt + provider-agnostic structured LLM call |
 | `pipeline.py` | sequential loop, incremental cache, resume |
 | `finalize.py` | writes `output.csv`, backfills gaps |
+| `agent_tools.py` | tool surface for the optional agentic loop |
 | `evaluation/main.py` | scores predictions against the labelled samples |
+| `audit_op.py` | verifies output.csv against the submission contract |
