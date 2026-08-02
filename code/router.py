@@ -11,10 +11,12 @@ from config import (
     GROQ_MODEL,
     GROQ_TEMPERATURE,
     LLM_PROVIDER,
+    MAX_PAID_CALLS,
     OPENROUTER_BASE_URL,
     OPENROUTER_MODEL,
     ORCAROUTER_BASE_URL,
     ORCAROUTER_MODEL,
+    PAID_PROVIDERS,
     PROMPT_VERSION,
     PROVIDER_FAILOVER,
     ROUTING_GEMINI_MODEL,
@@ -263,12 +265,21 @@ class LLMRouter:
         self.provider = provider
         self.client, self.model = _build_client(provider, model)
         self._exhausted: set[str] = set()
+        self.paid_calls = 0
 
     def _failover(self) -> bool:
-        """Switch to the next usable provider. False if there is nowhere to go."""
+        """Switch to the next usable provider. False if there is nowhere to go.
+
+        Free allowances are tried first: running one out costs nothing and simply
+        stops, whereas a paid provider spends real balance.
+        """
         self._exhausted.add(self.provider)
         for candidate in PROVIDER_FAILOVER:
             if candidate in self._exhausted:
+                continue
+            if candidate in PAID_PROVIDERS and self.paid_calls >= MAX_PAID_CALLS:
+                print(f"    skipping {candidate}: paid-call budget spent ({MAX_PAID_CALLS})")
+                self._exhausted.add(candidate)
                 continue
             try:
                 self.client, self.model = _build_client(candidate, None)
@@ -276,12 +287,26 @@ class LLMRouter:
                 print(f"    cannot fail over to {candidate}: {exc}")
                 self._exhausted.add(candidate)
                 continue
-            print(f"    failing over: {self.provider} -> {candidate} ({self.model})")
+            kind = "paid" if candidate in PAID_PROVIDERS else "free tier"
+            print(f"    failing over: {self.provider} -> {candidate} ({self.model}, {kind})")
             self.provider = candidate
             return True
         return False
 
+    def _charge(self) -> None:
+        """Count and cap spending against paid providers before a call is made."""
+        if self.provider not in PAID_PROVIDERS:
+            return
+        if self.paid_calls >= MAX_PAID_CALLS:
+            raise RuntimeError(
+                f"paid-call budget spent: {self.paid_calls}/{MAX_PAID_CALLS} calls on "
+                f"{self.provider}. Cached decisions are kept - re-run when free quota "
+                f"returns, or raise MAX_PAID_CALLS deliberately."
+            )
+        self.paid_calls += 1
+
     def _create(self, messages: list[dict], response_model, max_retries: int):
+        self._charge()
         kwargs = {
             "model": self.model,
             "response_model": response_model,

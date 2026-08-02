@@ -9,10 +9,40 @@ A **hybrid of a deterministic safety gate and an LLM judgement call**, fed by **
 branches**.
 
 ```
-message ─▶ context assembly ─▶ safety gate ──[hard scam]──▶ mute (LLM cannot override)
-              (SQL + vector)         │
-                                     └──[everything else]──▶ LLM ──▶ notify / digest / mute
+                    dataset/*.csv                media/ (images, voice)
+                          │                              │
+                          ▼                              ▼
+                    SQLite (build-db)          Gemini OCR + ASR, cached once
+                          │                              │
+                          └──────────┬───────────────────┘
+                                     ▼
+                        ┌────────────────────────┐
+                        │   context assembly     │   MessageRoutingContext
+                        │                        │   = message + media analysis
+                        │  ┌──────────────────┐  │     + user + group/business
+                        │  │ evidence fusion  │  │     + evidence + features
+                        │  │  SQL ⋈ vector    │  │
+                        │  └──────────────────┘  │
+                        └───────────┬────────────┘
+                                    ▼
+                          ┌──────────────────┐
+                          │   safety gate    │  deterministic, pre-LLM
+                          └───┬──────────┬───┘
+                    hard scam │          │ everything else
+                              ▼          ▼
+                    mute (locked)   LLM decision ──▶ notify / digest / mute
+                    type still           │  instructor-validated, temp 0
+                    classified           │  optional agentic evidence loop
+                                         │  provider failover, free tier first
+                                         ▼
+                         cache/routing_results.jsonl  (resumable)
+                                         │
+                                         ▼
+                                    output.csv
 ```
+
+Every stage is a typed Pydantic model (`schemas.py`), so the boundary between retrieval, gating, and
+the LLM is explicit rather than a bag of dicts.
 
 ### 1. Retrieval fusion
 
@@ -50,13 +80,31 @@ validates the reply against a Pydantic model and re-prompts on malformed output.
 Confidence is split by path: gated mutes get a fixed 0.95 (a deterministic decision has nothing to
 hedge); the LLM self-reports for everything else.
 
-### 4. Reliability
+### 4. Reliability and cost control
 
 Sequential calls only — concurrency plus free-tier rate limits risks silently skipped records. Each
 decision is appended to `cache/routing_results.jsonl` as it completes, so a run resumes exactly where
 it stopped. A transient rate limit is waited out; any other failure **stops the run** rather than
 inventing a decision. `finalize` then backfills any still-missing id with a safe
 `digest`/`unknown`/0.1 default, guaranteeing one row per input message.
+
+**Quota exhaustion moves to the next provider instead of ending the run**, and the order is deliberate:
+
+| order | provider | funding |
+|---|---|---|
+| primary | Gemini | free daily allowance |
+| 1 | Groq | free daily allowance |
+| 2 | OrcaRouter | prepaid balance |
+| 3 | OpenRouter | prepaid balance |
+
+**Free allowances are spent first.** Running a free tier out costs nothing and simply stops; spending
+a prepaid balance is real money. Paid providers are additionally rationed by `MAX_PAID_CALLS` (default
+150 per run): once spent, the run stops with its cached decisions intact rather than draining a wallet
+or rolling into billed overage. `MAX_PAID_CALLS=0` refuses paid providers outright. A provider whose
+key is missing is skipped, so failover simply does not engage until one is configured.
+
+Every decision records the provider and model that answered, so a run that spanned providers is
+auditable afterwards rather than silently mixed.
 
 Bumping `PROMPT_VERSION` in `config.py` invalidates cached decisions made under an older prompt.
 
@@ -98,13 +146,22 @@ python code/main.py evaluate
 ### Providers and failover
 
 Defaults to Gemini (`gemini-flash-lite-latest`). Set `LLM_PROVIDER` to `orcarouter`, `openrouter`, or
-`groq` to choose another. When the active provider's quota runs out mid-run the router fails over to
-the next one in `PROVIDER_FAILOVER` that has a key, rather than ending the run; providers without a
-key are skipped. Every decision records the provider and model that answered, so a run spanning
-providers stays auditable.
+`groq` to choose another. Failover order and the paid-call budget are described under *Reliability and
+cost control* above.
 
-Free-tier caps are the real constraint. Groq allows 100k tokens/day, which one full run plus a little
-iteration exceeds. Gemini's caps are per model, from 500 requests/day down to 20 for some.
+Free-tier caps are the real constraint, and they are tighter than they look. Groq allows 100k
+tokens/day across models, which one full run plus a little iteration exceeds. Gemini's caps are **per
+model**, ranging from 500 requests/day down to 20 — so `gemini-3.5-flash` runs out after 20 calls
+while `gemini-flash-lite-latest` has 500. If a run stops on quota, re-running resumes from the cache;
+nothing already decided is recomputed.
+
+| Knob | Default | Purpose |
+|---|---|---|
+| `LLM_PROVIDER` | `gemini` | which provider answers routing calls |
+| `MAX_PAID_CALLS` | `150` | ceiling on paid-provider calls per run; `0` refuses them |
+| `CALL_DELAY_SECONDS` | `1.0` | pause between calls, to stay under requests-per-minute |
+| `AGENT_ENABLED` | `0` | agentic evidence loop (see below) |
+| `AGENT_MAX_ROUNDS` | `2` | tool-call rounds allowed when the agent is on |
 
 ## Results on the labelled samples
 

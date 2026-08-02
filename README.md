@@ -60,6 +60,25 @@ For image and voice-note messages, `images.csv` and `voice_notes.csv` only provi
 
 ---
 
+## This Solution
+
+The router lives in [`code/`](./code/) — see [`code/README.md`](./code/README.md) for the full
+architecture, setup, and measured results.
+
+```bash
+pip install -r requirements.txt
+cp .env.example .env              # add GEMINI_API_KEY
+python code/main.py build-db      # dataset CSVs -> SQLite
+python code/main.py media         # one-time OCR + ASR, already cached in the repo
+python code/main.py route         # routes every message, writes output.csv
+python code/main.py evaluate      # scores against the 30 labelled samples
+python code/audit_op.py           # checks output.csv against the submission contract
+```
+
+A deterministic safety gate hard-mutes clear scams and prompt-injection attempts before the LLM sees
+them; everything else gets one structured LLM call with fused SQL + vector evidence drawn from that
+user's own history. On the labelled samples: **action 100%, message_type 90.0%, evidence 75.0%**.
+
 ## Suggested Workflow
 
 1. Inspect `dataset/sample_messages.csv` to understand the expected output format.

@@ -36,7 +36,21 @@ ORCAROUTER_MODEL = os.environ.get("ANTHROPIC_MODEL", "orcarouter/auto")
 
 # Tried in order when the provider ahead runs out of quota. A provider whose key
 # is missing is skipped, so failover simply does not engage until one is set.
-PROVIDER_FAILOVER = ["orcarouter", "openrouter"]
+#
+# Ordered free allowances first. Exhausting a free tier costs nothing and simply
+# stops; spending from a prepaid wallet is real money, so paid providers are only
+# reached once the free ones are used up.
+PROVIDER_FAILOVER = ["groq", "orcarouter", "openrouter"]
+
+# Providers that draw on a prepaid balance or a billed account rather than a free
+# daily allowance. These are rationed by MAX_PAID_CALLS below.
+PAID_PROVIDERS = {"orcarouter", "openrouter"}
+
+# Hard ceiling on how many calls a single run may spend on paid providers. The run
+# stops when it is reached, rather than draining a wallet or rolling into billed
+# overage; cached decisions are kept, so it resumes once credit or free quota is
+# back. Set to 0 to refuse paid providers entirely, or raise it deliberately.
+MAX_PAID_CALLS = int(os.environ.get("MAX_PAID_CALLS", "150"))
 
 # Agentic evidence loop: extra tool-calling rounds allowed before the model must
 # decide. 0 disables the loop and uses the deterministic fused evidence as-is.
@@ -50,7 +64,7 @@ GEMINI_MODEL = "gemini-3.5-flash"
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 
 # Bumping this invalidates cached routing decisions made under an older prompt/schema.
-PROMPT_VERSION = "v7-orca"
+PROMPT_VERSION = "v6"
 
 MAX_EVIDENCE = 3
 MIN_VECTOR_SIMILARITY = 0.5
