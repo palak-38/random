@@ -20,6 +20,15 @@ from safety_gate import should_hard_mute
 from schemas import Action, IncomingMessage, MessageType, RoutingDecision
 
 
+def _safe(text: str) -> str:
+    """Windows consoles default to cp1252, and message text carries characters it
+    cannot encode (fullwidth punctuation in scam messages, emoji). Printing those
+    raised UnicodeEncodeError from inside the error handler itself, hiding the real
+    failure, so anything printed is made safe for the active console encoding."""
+    encoding = getattr(sys.stdout, "encoding", None) or "utf-8"
+    return str(text).encode(encoding, errors="replace").decode(encoding, errors="replace")
+
+
 def load_cache(path: Path = ROUTING_CACHE) -> dict[str, RoutingDecision]:
     """Decisions made under an older prompt version are ignored, not reused."""
     if not path.exists():
@@ -131,13 +140,13 @@ def run(
         try:
             decision = decide(msg, builder, llm_router, tools_factory)
         except Exception as exc:  # noqa: BLE001 - stop, do not fabricate a decision
-            print(f"\nSTOPPED at {msg.message_id} ({i}/{len(pending)}): {type(exc).__name__}: {exc}")
+            print(_safe(f"\nSTOPPED at {msg.message_id} ({i}/{len(pending)}): {type(exc).__name__}: {exc}"))
             print(f"{len(done)} decisions are safe in {cache_path}. Re-run to resume from here.")
             sys.exit(1)
 
         append_cache(decision, cache_path)
         done[msg.message_id] = decision
-        print(f"[{i}/{len(pending)}] {msg.message_id} -> {decision.action.value}/{decision.message_type.value} ({decision.decided_by})")
+        print(_safe(f"[{i}/{len(pending)}] {msg.message_id} -> {decision.action.value}/{decision.message_type.value} ({decision.decided_by})"))
         if i < len(pending) and CALL_DELAY_SECONDS:
             time.sleep(CALL_DELAY_SECONDS)
 

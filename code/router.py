@@ -13,12 +13,15 @@ from config import (
     LLM_PROVIDER,
     OPENROUTER_BASE_URL,
     OPENROUTER_MODEL,
+    ORCAROUTER_BASE_URL,
+    ORCAROUTER_MODEL,
     PROMPT_VERSION,
     PROVIDER_FAILOVER,
     ROUTING_GEMINI_MODEL,
     gemini_api_key,
     groq_api_key,
     openrouter_api_key,
+    orcarouter_auth_token,
 )
 from schemas import AgentRoutingDecision, EvidencePlan, LLMRoutingDecision, MessageRoutingContext
 
@@ -220,6 +223,19 @@ def _build_client(provider: str, model: str | None):
             ),
             model or ROUTING_GEMINI_MODEL,
         )
+    if provider == "orcarouter":
+        token = orcarouter_auth_token()
+        if not token:
+            raise RuntimeError("ANTHROPIC_AUTH_TOKEN is not set")
+        import anthropic
+
+        return (
+            instructor.from_anthropic(
+                anthropic.Anthropic(base_url=ORCAROUTER_BASE_URL, auth_token=token),
+                mode=instructor.Mode.ANTHROPIC_JSON,
+            ),
+            model or ORCAROUTER_MODEL,
+        )
     if provider == "openrouter":
         key = openrouter_api_key()
         if not key:
@@ -274,6 +290,10 @@ class LLMRouter:
         }
         if self.provider == "gemini":
             kwargs["generation_config"] = {"temperature": 0.0}
+        elif self.provider == "orcarouter":
+            # Anthropic-shaped API: max_tokens is required, and the gateway may route
+            # to a thinking model, which rejects an explicit temperature.
+            kwargs["max_tokens"] = 2048
         else:
             kwargs["temperature"] = GROQ_TEMPERATURE
         return self.client.chat.completions.create(**kwargs)

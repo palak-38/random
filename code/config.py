@@ -29,9 +29,14 @@ ROUTING_GEMINI_MODEL = "gemini-flash-lite-latest"
 OPENROUTER_MODEL = os.environ.get("OPENROUTER_MODEL", "google/gemini-2.0-flash-001")
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 
+# OrcaRouter speaks the Anthropic Messages API, so it is reached with the Anthropic
+# SDK pointed at its base URL rather than the OpenAI-compatible path.
+ORCAROUTER_BASE_URL = os.environ.get("ANTHROPIC_BASE_URL", "https://api.orcarouter.ai")
+ORCAROUTER_MODEL = os.environ.get("ANTHROPIC_MODEL", "orcarouter/auto")
+
 # Tried in order when the provider ahead runs out of quota. A provider whose key
 # is missing is skipped, so failover simply does not engage until one is set.
-PROVIDER_FAILOVER = ["openrouter"]
+PROVIDER_FAILOVER = ["orcarouter", "openrouter"]
 
 # Agentic evidence loop: extra tool-calling rounds allowed before the model must
 # decide. 0 disables the loop and uses the deterministic fused evidence as-is.
@@ -45,7 +50,7 @@ GEMINI_MODEL = "gemini-3.5-flash"
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 
 # Bumping this invalidates cached routing decisions made under an older prompt/schema.
-PROMPT_VERSION = "v6"
+PROMPT_VERSION = "v7-orca"
 
 MAX_EVIDENCE = 3
 MIN_VECTOR_SIMILARITY = 0.5
@@ -60,6 +65,11 @@ def groq_api_key() -> str:
     if not key:
         raise RuntimeError("GROQ_API_KEY is not set. Copy .env.example to .env and fill it in.")
     return key
+
+
+def orcarouter_auth_token() -> str | None:
+    """Optional: absent means failover to OrcaRouter is simply not available."""
+    return os.environ.get("ANTHROPIC_AUTH_TOKEN") or None
 
 
 def openrouter_api_key() -> str | None:
