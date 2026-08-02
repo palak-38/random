@@ -79,10 +79,15 @@ Bumping `PROMPT_VERSION` in `config.py` invalidates cached decisions made under 
 
 ## Setup
 
+Place the challenge's `dataset/` directory (including `dataset/media/`) beside `code/`. It is not
+bundled here, since it ships with the challenge.
+
 ```bash
 pip install -r requirements.txt
 cp .env.example .env      # then fill in the keys
 ```
+
+Python 3.12. Only `GEMINI_API_KEY` is needed to reproduce the results below.
 
 | Variable | Needed for |
 |---|---|
@@ -211,7 +216,7 @@ Generated data is split by lifecycle rather than lumped into one folder:
 |---|---|---|
 | `derived/media_analysis.json` | **yes** | build artefact — the OCR/ASR pass costs API quota and never changes, so it ships and the router runs without a media key |
 | `cache/` | no | disposable run state — SQLite mirror, embeddings, in-progress decisions; deleting it costs only time |
-| `output/output.csv` | yes | the submission itself. `OUTPUT_CSV` overrides the location |
+| `output/output.csv` | in the repo, not in the zip | the predictions, uploaded separately. `OUTPUT_CSV` overrides the location |
 
 `cache/routing_results.jsonl` is deliberately not committed: it holds the actual predictions, and
 shipping it would let a run replay cached decisions rather than compute them.
