@@ -33,14 +33,31 @@ def cmd_route(args: argparse.Namespace) -> None:
         print("         run `python code/main.py media` first for best results.")
     builder = ContextBuilder(store, media)
 
+    from agent_tools import EvidenceTools
     from router import LLMRouter
 
-    decisions = run(store, builder, LLMRouter(), table=args.table, limit=args.limit)
+    def tools_factory(msg):
+        return EvidenceTools(builder.retriever, store, msg)
+
+    decisions = run(store, builder, LLMRouter(), tools_factory, table=args.table, limit=args.limit)
     print(f"\n{len(decisions)} decisions cached in {ROUTING_CACHE}")
 
     if args.table == "messages":
         total, missing = finalize(store)
         print(f"wrote {OUTPUT_CSV} with {total} rows ({missing} backfilled)")
+
+
+def cmd_evaluate(args: argparse.Namespace) -> None:
+    """Score the labelled samples, routing them first if nothing is cached."""
+    from evaluation.main import main as score
+
+    from pipeline import load_cache
+
+    if not any(mid.startswith("sample_") for mid in load_cache()):
+        print("no cached sample predictions; routing them first\n")
+        cmd_route(argparse.Namespace(table="sample_messages", limit=None, rebuild_db=True))
+        print()
+    score()
 
 
 def cmd_finalize(args: argparse.Namespace) -> None:
@@ -70,6 +87,9 @@ def main() -> None:
     p.add_argument("--limit", type=int, default=None)
     p.add_argument("--rebuild-db", action="store_true")
     p.set_defaults(func=cmd_route)
+
+    p = sub.add_parser("evaluate", help="score the labelled samples (routes them first if needed)")
+    p.set_defaults(func=cmd_evaluate)
 
     p = sub.add_parser("finalize", help="write output.csv from cached decisions")
     p.set_defaults(func=cmd_finalize)

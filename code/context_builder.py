@@ -69,8 +69,10 @@ class ContextBuilder:
                     relationship=self.store.business_relationship(msg.user_id, msg.business_id),
                 )
 
-        media_text = analysis.as_context() if analysis else ""
-        evidence = self.retriever.retrieve(msg, media_text=media_text)
+        # Retrieval embeds the bare words; the labelled form is only for the prompt.
+        evidence = self.retriever.retrieve(
+            msg, media_text=analysis.as_query_text() if analysis else ""
+        )
 
         ctx = MessageRoutingContext(
             message=msg,

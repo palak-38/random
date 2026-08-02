@@ -77,6 +77,16 @@ class MediaAnalysis(BaseModel):
             parts.append(f"(media analysis unavailable: {self.analysis_error})")
         return "\n".join(parts)
 
+    def as_query_text(self) -> str:
+        """Just the words that carry meaning, for embedding.
+
+        as_context() prefixes labels like "Media description:" for the LLM to read.
+        Embedding those labels dilutes the vector - on a voice note they pushed
+        cosine against the right historical message from 0.62 down to 0.39, under
+        the retrieval threshold - so the search query is built without them.
+        """
+        return " ".join(p for p in [self.transcript, self.description] if p).strip()
+
 
 class UserContext(BaseModel):
     user_id: str
@@ -244,6 +254,62 @@ class LLMRoutingDecision(BaseModel):
     confidence: float = Field(ge=0.0, le=1.0, description="How confident you are in this routing decision")
 
 
+class EvidencePlan(BaseModel):
+    """Whether to look for better evidence, asked on its own.
+
+    Kept separate from the decision on purpose: when the model is asked to plan and
+    decide in one response it commits to an answer first and then never judges a
+    lookup necessary, so the loop never fires.
+    """
+
+    evidence_looks_relevant: bool = Field(
+        description="Does the listed history actually relate to what this message is about?"
+    )
+    need_more_evidence: bool = Field(
+        description="Should a different lookup be run before deciding?"
+    )
+    evidence_tool: Literal["none", "search_history", "find_messages_from_sender"] = Field(
+        default="none", description="Which lookup to run when need_more_evidence is true."
+    )
+    search_query: str = Field(
+        default="",
+        description=(
+            "For search_history: words describing the MEANING to match, not this message's own "
+            "sentence. The automatic search already tried the literal text and failed."
+        ),
+        max_length=200,
+    )
+
+
+class AgentRoutingDecision(LLMRoutingDecision):
+    """Retained for the single-call variant; the two-phase loop uses EvidencePlan."""
+
+    need_more_evidence: bool = Field(
+        default=False,
+        description=(
+            "Set true ONLY if the historical evidence provided looks unrelated to this message "
+            "and a different lookup would plausibly find something better. Otherwise decide now."
+        ),
+    )
+    evidence_tool: Literal["none", "search_history", "find_messages_from_sender"] = Field(
+        default="none",
+        description="Which lookup to run when need_more_evidence is true.",
+    )
+    search_query: str = Field(
+        default="",
+        description="For search_history: the wording to match past messages against.",
+        max_length=200,
+    )
+
+    def to_decision(self) -> LLMRoutingDecision:
+        return LLMRoutingDecision(
+            action=self.action,
+            message_type=self.message_type,
+            reason=self.reason,
+            confidence=self.confidence,
+        )
+
+
 class RoutingDecision(BaseModel):
     """Final decision written to output.csv."""
 
@@ -255,6 +321,11 @@ class RoutingDecision(BaseModel):
     evidence_message_ids: str = "none"
     decided_by: Literal["safety_gate", "llm", "fallback"] = "llm"
     prompt_version: str = "v1"
+    # Provenance: with failover enabled a single run can span providers, so record
+    # which one answered rather than leaving a mixed run silently indistinguishable.
+    provider: str = ""
+    model: str = ""
+    agent_rounds: int = 0
 
     def as_output_row(self) -> dict[str, str]:
         return {

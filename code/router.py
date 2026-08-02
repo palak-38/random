@@ -6,15 +6,21 @@ import time
 import instructor
 
 from config import (
+    AGENT_ENABLED,
+    AGENT_MAX_ROUNDS,
     GROQ_MODEL,
     GROQ_TEMPERATURE,
     LLM_PROVIDER,
+    OPENROUTER_BASE_URL,
+    OPENROUTER_MODEL,
     PROMPT_VERSION,
+    PROVIDER_FAILOVER,
     ROUTING_GEMINI_MODEL,
     gemini_api_key,
     groq_api_key,
+    openrouter_api_key,
 )
-from schemas import LLMRoutingDecision, MessageRoutingContext
+from schemas import AgentRoutingDecision, EvidencePlan, LLMRoutingDecision, MessageRoutingContext
 
 SYSTEM_PROMPT = """You are a WhatsApp notification router. For one incoming message you decide whether to \
 interrupt the user now, save it for later, or suppress it.
@@ -177,6 +183,20 @@ def build_user_prompt(ctx: MessageRoutingContext) -> str:
     return "\n".join(lines)
 
 
+AGENT_PROMPT = """You decide whether a routing system should look harder for a user's past messages before routing an incoming one. You do not route it yourself here.
+
+The history shown was retrieved by a literal keyword and embedding search. It misses past messages that mean the same thing in different words, and it returns nothing for short or media-only messages.
+
+Set need_more_evidence when either holds:
+- the history section says nothing relevant was found, and this user could plausibly have received something related before;
+- the listed messages do not actually relate to what this message is about.
+
+Choose one lookup. Prefer search_history in almost every case - it is the only one that can find a past message about the same subject.
+- search_history: you supply search_query. Describe the MEANING to match in different words - the topic, the situation, the kind of request. Do not repeat this message's own sentence, that search already failed. For a water tanker notice try "water supply tanker tank cleaning"; for a clinic message try "health clinic appointment"; for someone reselling an item try "selling second hand item pickup".
+- find_messages_from_sender: only when the sender's own track record is what matters - whether they repeat themselves, or whether this user reported them before. It cannot find messages about a topic.
+
+If the shown history clearly relates to this message, set need_more_evidence false."""
+
 RETRY_AFTER = re.compile(r"try again in ([\d.]+)s", re.I)
 
 
@@ -185,63 +205,172 @@ def _is_rate_limit(exc: Exception) -> bool:
     return "429" in text or "rate_limit" in text or "resource_exhausted" in text or "quota" in text
 
 
+def _build_client(provider: str, model: str | None):
+    """Returns (instructor_client, model_name) for a provider, or raises if unusable."""
+    if provider == "groq":
+        from groq import Groq
+
+        return instructor.from_groq(Groq(api_key=groq_api_key()), mode=instructor.Mode.JSON), model or GROQ_MODEL
+    if provider == "gemini":
+        from google import genai
+
+        return (
+            instructor.from_genai(
+                genai.Client(api_key=gemini_api_key()), mode=instructor.Mode.GENAI_STRUCTURED_OUTPUTS
+            ),
+            model or ROUTING_GEMINI_MODEL,
+        )
+    if provider == "openrouter":
+        key = openrouter_api_key()
+        if not key:
+            raise RuntimeError("OPENROUTER_API_KEY is not set")
+        from openai import OpenAI
+
+        return (
+            instructor.from_openai(OpenAI(api_key=key, base_url=OPENROUTER_BASE_URL), mode=instructor.Mode.JSON),
+            model or OPENROUTER_MODEL,
+        )
+    raise ValueError(f"unknown provider: {provider!r} (expected 'gemini', 'groq', or 'openrouter')")
+
+
 class LLMRouter:
-    """Provider-agnostic wrapper. instructor validates the response against
-    LLMRoutingDecision and re-prompts the model if it comes back malformed."""
+    """Provider-agnostic wrapper. instructor validates each response against the
+    requested Pydantic model and re-prompts the model if it comes back malformed.
+
+    When the active provider runs out of quota the router falls over to the next
+    provider in PROVIDER_FAILOVER that has a key, so a long unattended run does not
+    die on a daily cap. The provider that actually answered is recorded on every
+    decision, so a mixed run stays auditable.
+    """
 
     def __init__(self, provider: str = LLM_PROVIDER, model: str | None = None):
         self.provider = provider
-        if provider == "groq":
-            from groq import Groq
+        self.client, self.model = _build_client(provider, model)
+        self._exhausted: set[str] = set()
 
-            self.model = model or GROQ_MODEL
-            self.client = instructor.from_groq(Groq(api_key=groq_api_key()), mode=instructor.Mode.JSON)
-        elif provider == "gemini":
-            from google import genai
+    def _failover(self) -> bool:
+        """Switch to the next usable provider. False if there is nowhere to go."""
+        self._exhausted.add(self.provider)
+        for candidate in PROVIDER_FAILOVER:
+            if candidate in self._exhausted:
+                continue
+            try:
+                self.client, self.model = _build_client(candidate, None)
+            except Exception as exc:  # noqa: BLE001
+                print(f"    cannot fail over to {candidate}: {exc}")
+                self._exhausted.add(candidate)
+                continue
+            print(f"    failing over: {self.provider} -> {candidate} ({self.model})")
+            self.provider = candidate
+            return True
+        return False
 
-            self.model = model or ROUTING_GEMINI_MODEL
-            self.client = instructor.from_genai(
-                genai.Client(api_key=gemini_api_key()),
-                mode=instructor.Mode.GENAI_STRUCTURED_OUTPUTS,
-            )
-        else:
-            raise ValueError(f"unknown LLM_PROVIDER: {provider!r} (expected 'gemini' or 'groq')")
-
-    def _create(self, ctx: MessageRoutingContext, max_retries: int) -> LLMRoutingDecision:
+    def _create(self, messages: list[dict], response_model, max_retries: int):
         kwargs = {
             "model": self.model,
-            "response_model": LLMRoutingDecision,
+            "response_model": response_model,
             "max_retries": max_retries,
-            "messages": [
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": build_user_prompt(ctx)},
-            ],
+            "messages": messages,
         }
-        if self.provider == "groq":
-            kwargs["temperature"] = GROQ_TEMPERATURE
-        else:
+        if self.provider == "gemini":
             kwargs["generation_config"] = {"temperature": 0.0}
+        else:
+            kwargs["temperature"] = GROQ_TEMPERATURE
         return self.client.chat.completions.create(**kwargs)
 
-    def route(
+    def _call(
         self,
-        ctx: MessageRoutingContext,
+        messages: list[dict],
+        response_model,
         max_retries: int = 3,
         rate_limit_retries: int = 3,
-    ) -> LLMRoutingDecision:
-        """A per-minute rate limit is worth waiting out; anything else is raised so
-        the pipeline stops rather than inventing a decision."""
+    ):
+        """A short rate limit is worth waiting out. Exhausted quota triggers failover.
+        Anything else is raised so the pipeline stops rather than inventing a decision."""
         for attempt in range(rate_limit_retries + 1):
             try:
-                return self._create(ctx, max_retries)
+                return self._create(messages, response_model, max_retries)
             except Exception as exc:  # noqa: BLE001
-                if not _is_rate_limit(exc) or attempt == rate_limit_retries:
+                if not _is_rate_limit(exc):
                     raise
                 match = RETRY_AFTER.search(str(exc))
-                wait = min(float(match.group(1)) + 1, 90) if match else 20 * (attempt + 1)
+                if match:
+                    wait = min(float(match.group(1)) + 1, 90)
+                elif attempt < rate_limit_retries:
+                    wait = 20 * (attempt + 1)
+                else:
+                    wait = None
+                # No stated retry window, or waits already spent: treat as exhausted.
+                if wait is None or attempt == rate_limit_retries:
+                    if self._failover():
+                        return self._call(messages, response_model, max_retries, rate_limit_retries)
+                    raise
                 print(f"    rate limited, waiting {wait:.0f}s")
                 time.sleep(wait)
         raise RuntimeError("unreachable")
+
+    def route(self, ctx: MessageRoutingContext, max_retries: int = 3) -> LLMRoutingDecision:
+        messages = [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": build_user_prompt(ctx)},
+        ]
+        return self._call(messages, LLMRoutingDecision, max_retries)
+
+    def route_agentic(self, ctx: MessageRoutingContext, tools, max_retries: int = 3):
+        """Plan evidence lookups, run them, then decide.
+
+        Returns (decision, extra_candidates, rounds_used). Planning is a separate call
+        from deciding because a model asked to do both in one response commits to an
+        answer first and then never asks for a lookup.
+        """
+        base_prompt = build_user_prompt(ctx)
+        messages = [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": base_prompt},
+        ]
+        extra: list = []
+        asked: set[str] = set()
+
+        for rounds in range(AGENT_MAX_ROUNDS):
+            plan = self._call(
+                [
+                    {"role": "system", "content": AGENT_PROMPT},
+                    *messages[1:],
+                    {"role": "user", "content": "Plan the evidence lookup. Do not route the message yet."},
+                ],
+                EvidencePlan,
+                max_retries,
+            )
+            if not plan.need_more_evidence or plan.evidence_tool == "none":
+                break
+
+            key = f"{plan.evidence_tool}:{plan.search_query.strip().lower()}"
+            if key in asked:
+                break
+            asked.add(key)
+
+            if plan.evidence_tool == "search_history":
+                summary, found = tools.search_history(plan.search_query)
+            else:
+                summary, found = tools.find_messages_from_sender()
+
+            extra.extend(found)
+            messages.append(
+                {
+                    "role": "user",
+                    "content": f"=== ADDITIONAL EVIDENCE ({plan.evidence_tool}) ===\n{summary}",
+                }
+            )
+            if not found:
+                break
+
+        messages.append(
+            {
+                "role": "user",
+                "content": "Route this message now, using the most relevant evidence you have seen.",
+            }
+        )
+        return self._call(messages, LLMRoutingDecision, max_retries), extra, len(asked)
 
 
 def prompt_version() -> str:
