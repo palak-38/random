@@ -165,23 +165,20 @@ nothing already decided is recomputed.
 
 ## Results on the labelled samples
 
-Scored with `python code/main.py evaluate`, on Gemini, in the configuration that produced the shipped
-`output.csv`:
+Scored with `python code/main.py evaluate`, on Gemini `gemini-flash-lite-latest` — the same
+configuration that produced the shipped `output.csv`:
 
 | Metric | Score |
 |---|---|
 | action accuracy | 30/30 = **100%** |
 | message_type accuracy | 27/30 = **90.0%** |
 | both correct | 27/30 = **90.0%** |
-| evidence overlap with ground truth | 21/28 = **75.0%** |
+| evidence overlap with ground truth | 22/28 = **78.6%** |
 
-**One caveat about `output.csv`.** It was generated before the media-retrieval fix described below
-landed. Re-running the router now scores **78.6%** on evidence rather than 75.0%, because media-only
-messages retrieve evidence that they previously could not. The shipped file was not regenerated
-because every provider's daily free-tier quota was exhausted before the run finished, and shipping a
-complete, verified file was preferable to one with a quarter of its rows backfilled with safe
-defaults. Everything else about the file is unchanged: 110 rows, contract-valid, `python
-code/audit_op.py` passes, no fallback rows.
+`output.csv` is a single uniform run: 110 rows, every decision from one model, no fallback rows, no
+backfills, `python code/audit_op.py` passes, and row order matches `dataset/messages.csv`. 22 of the
+23 image and voice messages carry evidence; the 11 rows citing `none` are mostly text messages whose
+sender the user has no relevant history with, which is the honest answer rather than a padded one.
 
 Confidence spans 0.85–0.95, mean 0.91.
 
@@ -206,7 +203,8 @@ and that labelled string was also being used as the embedding query. The boilerp
 vector badly. On one voice note, cosine similarity against the correct historical message fell from
 **0.62 to 0.39**, under the retrieval threshold, so the message came back with no evidence whatsoever.
 `as_query_text()` now supplies the bare words for embedding while the prompt keeps the labelled form.
-Evidence overlap rose 75.0% -> 78.6%.
+Evidence overlap rose 75.0% -> 78.6%, and 22 of the 23 media messages went from citing nothing to
+citing real history.
 
 The lesson generalises: text formatted for a human reader is not the right text to embed.
 

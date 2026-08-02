@@ -77,7 +77,7 @@ python code/audit_op.py           # checks output.csv against the submission con
 
 A deterministic safety gate hard-mutes clear scams and prompt-injection attempts before the LLM sees
 them; everything else gets one structured LLM call with fused SQL + vector evidence drawn from that
-user's own history. On the labelled samples: **action 100%, message_type 90.0%, evidence 75.0%**.
+user's own history. On the labelled samples: **action 100%, message_type 90.0%, evidence 78.6%**.
 
 ## Suggested Workflow
 
