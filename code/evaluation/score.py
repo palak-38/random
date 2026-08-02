@@ -1,8 +1,8 @@
 """Scores routed sample_messages.csv against the labels shipped with the dataset.
 
 Usage:
-    python code/main.py route --table sample_messages
-    python code/evaluation/main.py
+    python code/main.py evaluate          # routes the samples first if needed
+    python code/evaluation/score.py       # or score whatever is already cached
 """
 
 from __future__ import annotations

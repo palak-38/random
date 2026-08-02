@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parent.parent
 # file - sample_messages.csv uses a separate sample_msg_* id namespace.
 messages = pd.read_csv(ROOT / "dataset" / "messages.csv").fillna("")
 history = pd.read_csv(ROOT / "dataset" / "message_history.csv").fillna("")
-output = pd.read_csv(ROOT / "output.csv").fillna("")
+output = pd.read_csv(ROOT / "output" / "output.csv").fillna("")
 
 required_columns = [
     "message_id",

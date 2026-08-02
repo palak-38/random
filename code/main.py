@@ -49,7 +49,7 @@ def cmd_route(args: argparse.Namespace) -> None:
 
 def cmd_evaluate(args: argparse.Namespace) -> None:
     """Score the labelled samples, routing them first if nothing is cached."""
-    from evaluation.main import main as score
+    from evaluation.score import main as score
 
     from pipeline import load_cache
 

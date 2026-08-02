@@ -4,7 +4,7 @@ import json
 import re
 from pathlib import Path
 
-from config import CACHE_DIR, DATASET_DIR, GEMINI_MODEL, MEDIA_ANALYSIS_CACHE, gemini_api_key
+from config import DATASET_DIR, DERIVED_DIR, GEMINI_MODEL, MEDIA_ANALYSIS, gemini_api_key
 from schemas import MediaAnalysis, MediaContent
 
 URL_RE = re.compile(r"\b(?:https?://)?[a-z0-9][a-z0-9\-]*(?:\.[a-z0-9\-]+)+(?:/[^\s,]*)?", re.I)
@@ -25,14 +25,14 @@ VOICE_PROMPT = (
 
 
 def _load_cache() -> dict[str, dict]:
-    if MEDIA_ANALYSIS_CACHE.exists():
-        return json.loads(MEDIA_ANALYSIS_CACHE.read_text(encoding="utf-8"))
+    if MEDIA_ANALYSIS.exists():
+        return json.loads(MEDIA_ANALYSIS.read_text(encoding="utf-8"))
     return {}
 
 
 def _save_cache(cache: dict[str, dict]) -> None:
-    CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    MEDIA_ANALYSIS_CACHE.write_text(json.dumps(cache, indent=2, ensure_ascii=False), encoding="utf-8")
+    DERIVED_DIR.mkdir(parents=True, exist_ok=True)
+    MEDIA_ANALYSIS.write_text(json.dumps(cache, indent=2, ensure_ascii=False), encoding="utf-8")
 
 
 def _derive(media_id: str, media_type: str, description: str, text: str) -> MediaAnalysis:

@@ -70,9 +70,9 @@ pip install -r requirements.txt
 cp .env.example .env              # add GEMINI_API_KEY
 python code/main.py build-db      # dataset CSVs -> SQLite
 python code/main.py media         # one-time OCR + ASR, already cached in the repo
-python code/main.py route         # routes every message, writes output.csv
+python code/main.py route         # routes every message, writes output/output.csv
 python code/main.py evaluate      # scores against the 30 labelled samples
-python code/audit_op.py           # checks output.csv against the submission contract
+python code/audit_op.py           # checks output/output.csv against the submission contract
 ```
 
 A deterministic safety gate hard-mutes clear scams and prompt-injection attempts before the LLM sees

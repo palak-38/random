@@ -8,8 +8,7 @@ to the receiving user, and writes `output.csv`.
 A **hybrid of a deterministic safety gate and an LLM judgement call**, fed by **two fused retrieval
 branches**.
 
-
-<img width="860" height="880" alt="image" src="https://github.com/user-attachments/assets/5230b81b-30ed-465f-a6f0-a41bfb5b2fec" />
+<img width="860" height="880" alt="Architecture: dataset and media feed context assembly with SQL and vector evidence fusion, through a deterministic safety gate, to the LLM decision and a resumable cache" src="https://github.com/user-attachments/assets/5230b81b-30ed-465f-a6f0-a41bfb5b2fec" />
 
 Every stage is a typed Pydantic model (`schemas.py`), so the boundary between retrieval, gating, and
 the LLM is explicit rather than a bag of dicts.
@@ -92,7 +91,7 @@ cp .env.example .env      # then fill in the keys
 | `OPENROUTER_API_KEY` | optional second failover |
 | `GROQ_API_KEY` | only if you set `LLM_PROVIDER=groq` |
 
-Keys are read from the environment only. `.env` is gitignored. `cache/media_analysis.json` is
+Keys are read from the environment only. `.env` is gitignored. `derived/media_analysis.json` is
 committed, so the router runs without a media key.
 
 ## Run
@@ -100,7 +99,7 @@ committed, so the router runs without a media key.
 ```bash
 python code/main.py build-db     # load dataset CSVs into SQLite
 python code/main.py media        # one-time Gemini OCR + ASR pass, cached to disk
-python code/main.py route        # route all messages, writes output.csv
+python code/main.py route        # route all messages, writes output/output.csv
 ```
 
 `route` skips anything already cached, so re-running resumes rather than restarting. If it stopped
@@ -204,6 +203,19 @@ It fired on 2 of 26 LLM-decided messages and improved neither. So it ships behin
 as the default, and the deterministic fusion remains the shipped path. Kept in the tree because the
 negative result is the useful part.
 
+## Layout
+
+Generated data is split by lifecycle rather than lumped into one folder:
+
+| Path | Committed | Lifecycle |
+|---|---|---|
+| `derived/media_analysis.json` | **yes** | build artefact — the OCR/ASR pass costs API quota and never changes, so it ships and the router runs without a media key |
+| `cache/` | no | disposable run state — SQLite mirror, embeddings, in-progress decisions; deleting it costs only time |
+| `output/output.csv` | yes | the submission itself. `OUTPUT_CSV` overrides the location |
+
+`cache/routing_results.jsonl` is deliberately not committed: it holds the actual predictions, and
+shipping it would let a run replay cached decisions rather than compute them.
+
 ## Files
 
 | File | Role |
@@ -213,11 +225,11 @@ negative result is the useful part.
 | `embeddings.py` | MiniLM embeddings + cosine similarity |
 | `retrieval.py` | SQL + vector fusion into `HistoricalEvidence` |
 | `safety_gate.py` | deterministic scam / injection rules |
-| `media_analysis.py` | Gemini vision + ASR, cached to `cache/media_analysis.json` |
+| `media_analysis.py` | Gemini vision + ASR, written to `derived/media_analysis.json` |
 | `context_builder.py` | assembles `MessageRoutingContext` |
 | `router.py` | prompt + provider-agnostic structured LLM call |
 | `pipeline.py` | sequential loop, incremental cache, resume |
 | `finalize.py` | writes `output.csv`, backfills gaps |
 | `agent_tools.py` | tool surface for the optional agentic loop |
-| `evaluation/main.py` | scores predictions against the labelled samples |
+| `evaluation/score.py` | scores predictions against the labelled samples |
 | `audit_op.py` | verifies output.csv against the submission contract |

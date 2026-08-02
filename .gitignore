@@ -1,11 +1,14 @@
 .env
 
-# Ignore cache contents, but keep the media analysis: it is derived input (OCR/ASR),
-# not predictions, and committing it lets the router run without a Gemini key.
-# routing_results.jsonl is deliberately NOT committed - it holds the actual decisions,
-# and shipping it would make a run replay cached predictions instead of computing them.
-cache/*
-!cache/media_analysis.json
+# cache/ is disposable run state: the SQLite mirror of the CSVs, embeddings, and
+# in-progress routing decisions. routing_results.jsonl is deliberately not committed
+# - it holds the actual predictions, and shipping it would make a run replay cached
+# decisions instead of computing them.
+#
+# derived/media_analysis.json is committed on purpose and is NOT ignored: the OCR and
+# ASR pass costs API quota and its result never changes, so shipping it lets the
+# router run without a media key.
+cache/
 
 __pycache__/
 *.pyc

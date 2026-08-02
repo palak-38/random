@@ -9,14 +9,26 @@ load_dotenv(override=True)
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DATASET_DIR = REPO_ROOT / "dataset"
 MEDIA_DIR = DATASET_DIR / "media"
+
+# Two kinds of generated data, kept apart because they have opposite lifecycles.
+#
+# derived/ is a committed build artefact: the Gemini OCR and ASR pass costs API
+# quota and its result never changes, so it ships with the repo and the router
+# runs without a media key. Safe to delete only if you intend to pay to rebuild it.
+#
+# cache/ is disposable run state - the SQLite mirror of the CSVs, embeddings, and
+# in-progress routing decisions. Entirely gitignored; deleting it costs only time.
+DERIVED_DIR = REPO_ROOT / "derived"
 CACHE_DIR = REPO_ROOT / "cache"
 
-MEDIA_ANALYSIS_CACHE = CACHE_DIR / "media_analysis.json"
+MEDIA_ANALYSIS = DERIVED_DIR / "media_analysis.json"
 ROUTING_CACHE = CACHE_DIR / "routing_results.jsonl"
 SQLITE_DB = CACHE_DIR / "router.db"
 EMBEDDING_CACHE = CACHE_DIR / "history_embeddings.npz"
 
-OUTPUT_CSV = REPO_ROOT / "output.csv"
+# The submission contract names the file, not its location; keeping it out of the
+# repo root separates generated output from source. Override with OUTPUT_CSV.
+OUTPUT_CSV = Path(os.environ.get("OUTPUT_CSV") or REPO_ROOT / "output" / "output.csv")
 
 # Which provider answers the per-message routing call. Groq's free tier has a
 # 100k tokens/day cap that a full run plus iteration exceeds, so Gemini is the default.
