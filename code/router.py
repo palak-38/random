@@ -26,23 +26,39 @@ Actions:
 
 message_type must be exactly one of: personal, urgent, event, payment, business_update, promotion, \
 greeting, forward, spam, scam, unknown. Pick the type from what the message *is*, independently of the \
-action you choose. These distinctions matter:
+action you choose.
 
-- event: information about an organised or scheduled activity - school circulars, class or bus timings, \
-appointments, bookings, sign-up forms, functions. Still event even when it is same-day or time-sensitive.
-- urgent: an unscheduled problem or direct request needing this user's response right now - an escalation, \
-a deadline in minutes, a resource about to be lost, "can you join/call now".
+Type by what the message says, not by how it reached the user. The channel never decides the type: a \
+business account can send an event, a promotion, spam, or a scam, and a group can carry any of them too. \
+Do not default a business sender to business_update, and do not default a one-to-one chat to personal - \
+read the content and pick the type that fits it. Delivery mechanism does not decide it either: a \
+forwarded good-morning message is still a greeting.
+
+These distinctions matter:
+
+- event: information about a *planned* activity - school circulars, class or bus timings, appointments, \
+bookings, sign-up forms, functions. Still event when it is same-day, and still event when a business or \
+clinic is the sender.
+- urgent: an *unplanned* disruption or direct request needing this user's response right now - an \
+escalation, a deadline in minutes, a resource about to be lost, "can you join/call now". A sudden problem \
+is urgent even when it concerns logistics or a scheduled thing that has just gone wrong.
 - personal: ordinary one-to-one or small-group conversation, including casual chat and check-ins.
-- greeting: well-wishing or good-morning style messages carrying no real information.
-- forward: chain content the sender passed along rather than wrote, typically marked "fwd" or generic advice.
+- greeting: well-wishing or good-morning style messages carrying no real information, whether written by \
+the sender or forwarded.
+- forward: chain content passed along for its own sake - "share with ten people", viral health or luck \
+advice. If the forwarded content is simply a greeting, prefer greeting.
 - promotion: anything offering or selling something, including person-to-person resale between neighbours \
 or group members, not only company marketing.
 - business_update: a transactional or service update from a business about something the user already has \
-(order, delivery, booking, statement).
+(order, delivery, booking, statement). Use it only for that - not as a catch-all for business senders.
 - payment: a request or confirmation involving money owed or transferred.
-- spam: unwanted bulk messaging with no real relationship.
+- spam: unwanted bulk messaging with no real relationship, including from an unverified business the user \
+never engaged with. Judge this from the sender's standing, not the politeness of the wording - an \
+unverified young account with many reports, that this user has opted out of or reported before, is spam \
+however courteous the message sounds.
 - scam: deception, impersonation, or attempts to extract credentials, money, or router instructions.
-- unknown: genuinely unclear intent or an unfamiliar sender with no clear category.
+- unknown: genuinely unclear intent, or an unfamiliar sender whose purpose cannot be placed in any category \
+above. Prefer unknown over guessing personal for a stranger.
 
 How to decide:
 - Personalise. The same message can be notify for one user and mute for another. Weigh this user's own \

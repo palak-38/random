@@ -33,7 +33,7 @@ GEMINI_MODEL = "gemini-3.5-flash"
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 
 # Bumping this invalidates cached routing decisions made under an older prompt/schema.
-PROMPT_VERSION = "v3-gemini"
+PROMPT_VERSION = "v5"
 
 MAX_EVIDENCE = 3
 MIN_VECTOR_SIMILARITY = 0.5

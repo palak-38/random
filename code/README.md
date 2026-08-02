@@ -102,12 +102,24 @@ run plus iteration exceeds. To use Groq anyway: `LLM_PROVIDER=groq python code/m
 
 | Metric | Score |
 |---|---|
-| action accuracy | 29/30 = **96.7%** |
-| message_type accuracy | 25/30 = **83.3%** |
-| both correct | 25/30 = **83.3%** |
+| action accuracy | 30/30 = **100%** |
+| message_type accuracy | 27/30 = **90.0%** |
+| both correct | 27/30 = **90.0%** |
 | evidence overlap with ground truth | 21/28 = **75.0%** |
 
 Confidence spans 0.85–0.95, mean 0.91.
+
+`message_type` was the weak metric at 83.3%. Comparing the per-channel type distribution against
+ground truth showed the cause: the model was typing by **how a message arrived** rather than what it
+said, collapsing everything from a business sender into `business_update` and never emitting `event`
+or `spam` on that channel. Three general rules fixed it - the channel does not decide the type, the
+delivery mechanism does not either (a forwarded good-morning is still a `greeting`), and spam is judged
+from sender standing rather than politeness of wording.
+
+The three remaining misses are genuine taxonomy overlaps rather than systematic errors (an appointment
+reminder is both an `event` and a `booking`, which `business_update` also covers). Fixing them would
+mean rules targeting one example each out of thirty, which memorises the sample set instead of
+generalising, so tuning stopped here.
 
 ## Files
 
