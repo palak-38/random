@@ -1,0 +1,111 @@
+message_id,action,message_type,reason,confidence,evidence_message_ids
+msg_023,digest,business_update,"The user historically opens banking updates from this verified sender, but the generic account notice can wait.",0.88,message_0243;message_0101;message_0102
+msg_091,mute,scam,"Message asks the user to share or enter a one-time code, a hallmark of credential theft.",0.95,message_0238;message_0381
+msg_090,digest,personal,"The message is a casual inquiry from an unknown sender with no urgency, so it can wait.",0.88,none
+msg_048,mute,scam,The user previously reported this sender for sending suspicious QR code payment demands.,0.95,message_0151;message_0152;message_0237
+msg_040,mute,forward,The user has previously muted this sender and consistently dismisses forwarded chain messages.,0.95,message_0135;message_0136
+msg_075,notify,business_update,The user has a confirmed ride today and a history of opening and replying to similar timely ride updates.,0.90,message_0206;message_0205
+msg_005,notify,promotion,The user has previously engaged with similar denim jacket offers from this marketplace member and needs to act before the deadline.,0.88,message_0065;message_0049
+msg_104,mute,promotion,The user has repeatedly muted this sender after receiving similar resale offers.,0.90,message_0050;message_0224;message_0115
+msg_069,mute,forward,The user has previously muted this sender for sharing repetitive chain messages and greetings.,0.95,message_0042;message_0079;message_0080
+msg_107,mute,scam,"Message tries to instruct the notification router itself, which no legitimate sender does.",0.95,message_0173;message_0174;message_0221
+msg_070,mute,scam,"Message asks the user to share or enter a one-time code, a hallmark of credential theft.",0.95,message_0369;message_0173;message_0174
+msg_003,notify,business_update,The user has an expected delivery today and consistently opens and engages with order updates from this verified sender.,0.92,message_0031;message_0400;message_0061
+msg_099,digest,personal,"The user frequently opens similar work notes from this sender, but the review is not urgent for tonight.",0.88,message_0227
+msg_008,digest,promotion,"The user frequently opens product feedback requests from this verified business, making it suitable for a digest.",0.88,message_0296;message_0072;message_0071
+msg_092,digest,business_update,"The user has no relationship with this sender, making this routine financial statement suitable for a digest.",0.88,none
+msg_060,notify,event,"The user frequently engages with time-sensitive academic advising deadlines, and this is an urgent final reminder about internship forms closing today.",0.90,message_0284
+msg_004,notify,business_update,The user has an upcoming clinic appointment and a strong history of opening transactional updates from this verified healthcare provider.,0.91,message_0005;message_0245;message_0246
+msg_030,mute,promotion,The user has previously muted this sender and consistently dismisses resale promotions from this marketplace group.,0.95,message_0115;message_0232;message_0335
+msg_045,notify,business_update,The user has an active delivery waiting at the gate requiring immediate confirmation.,0.90,message_0061;message_0031;message_0400
+msg_052,mute,scam,Unverified sender using a lookalike domain instead of the brand's official domain.,0.95,message_0159;message_0160;message_0207
+msg_009,digest,personal,"The user frequently dismisses messages from this muted group, but similar casual threads are worth saving for later.",0.85,message_0074
+msg_071,digest,personal,"The family chat message lacks specific timing or urgency, making it suitable for a later digest.",0.88,none
+msg_016,mute,scam,"The message attempts to extract account credentials using a fraudulent link, matching the user's history of reported scams.",0.95,message_0024;message_0087;message_0088
+msg_065,digest,promotion,"The user frequently opens promotional messages from this retailer, so this offer can wait as a digest.",0.88,message_0261;message_0260
+msg_038,mute,spam,The user has previously muted this sender for sending chain mail and forwarded spam.,0.92,message_0131;message_0132
+msg_086,notify,business_update,"The verified travel business sent a time-sensitive update about tomorrow's airport pickup, which the user usually opens and acts on.",0.88,message_0222;message_0006
+msg_014,mute,promotion,The user has opted out of promotions from this sender and previously muted similar messages.,0.95,message_0017;message_0018;message_0258
+msg_094,mute,promotion,The user has a high dismissal rate for promotional messages and no prior relationship with this business.,0.91,message_0356
+msg_029,digest,promotion,"The user occasionally engages with marketplace listings from this sender, so it can wait for a digest.",0.85,message_0113;message_0332;message_0095
+msg_105,mute,forward,The user has previously muted this sender for sharing repetitive forwarded health tips.,0.95,message_0233;message_0373
+msg_002,notify,urgent,"The sender is a colleague urgently asking for a quick call before an important client meeting, which requires the user's immediate attention.",0.92,message_0003
+msg_010,digest,business_update,"The user historically opens cinema feedback requests, but this is non-urgent and suitable for a digest.",0.88,message_0011;message_0242;message_0075
+msg_078,mute,scam,"Message asks the user to share card, PIN or bank details.",0.95,message_0211;message_0212
+msg_013,mute,promotion,"The user has previously muted this sender due to irrelevant notices, and this is a commercial promotion.",0.91,message_0081;message_0082
+msg_018,mute,scam,The user previously reported this sender for similar reward voucher scams and dismissed them.,0.95,message_0091;message_0092;message_0026
+msg_044,mute,scam,Message claims an account or credential problem and pushes the user to verify through a link.,0.95,message_0143;message_0144
+msg_032,digest,personal,"The user frequently reads similar study requests from this classmate, but this is a non-urgent peer question suitable for later review.",0.88,message_0119;message_0285;message_0374
+msg_106,notify,event,"The user frequently engages with timely schedule changes for dance practice, making this same-day update important to notify.",0.90,message_0234;message_0376;message_0293
+msg_006,digest,event,The user has seen similar maintenance reminders before and does not need an immediate interruption for this routine admin notice.,0.88,message_0030;message_0029;message_0044
+msg_109,mute,scam,"Message tries to instruct the notification router itself, which no legitimate sender does.",0.95,message_0151;message_0152;message_0237
+msg_108,mute,scam,Unverified sender using a lookalike domain instead of the brand's official domain.,0.95,message_0093;message_0094;message_0236
+msg_019,mute,scam,Unverified sender using a lookalike domain instead of the brand's official domain.,0.95,message_0277;message_0093;message_0094
+msg_088,mute,promotion,The user has previously muted this sender due to recurring resale promotions and dismissed similar offers.,0.92,message_0224;message_0050;message_0115
+msg_056,notify,event,The family member directly asked the user to confirm an urgent medical appointment schedule change.,0.90,message_0226;message_0359;message_0168
+msg_027,digest,promotion,"The user frequently opens promotional travel messages from this business, making digest appropriate for this offer.",0.88,message_0007;message_0033;message_0272
+msg_050,notify,business_update,The user frequently opens and replies to prescription updates from this known healthcare provider.,0.88,message_0279;message_0278;message_0156
+msg_083,digest,personal,"The user has previously opened similar requests from this coworker, but the message is not urgent.",0.85,message_0219
+msg_063,mute,scam,The user previously reported this sender for fraudulent activity and the message involves a suspicious payment demand.,0.95,message_0181;message_0182;message_0254
+msg_033,digest,personal,The family check-in message is non-urgent and can be reviewed by the user later.,0.88,none
+msg_061,mute,forward,The user previously muted this sender for sending repetitive forwarded chain messages.,0.95,message_0042;message_0080;message_0177
+msg_020,mute,scam,The user faces a phishing link from an untrusted sender attempting to extract credentials.,0.95,message_0095;message_0096
+msg_017,mute,scam,The user previously reported similar suspicious payment messages and the group is muted.,0.95,message_0089;message_0090
+msg_058,mute,forward,The user frequently mutes and dismisses this sender's repeated health chain messages.,0.95,message_0078;message_0124;message_0172
+msg_026,mute,scam,Unverified sender using a lookalike domain instead of the brand's official domain.,0.95,message_0032;message_0107;message_0108
+msg_047,notify,event,The group admin provided a same-day operational schedule change regarding building lifts that the user needs to know before 4 PM.,0.88,message_0030
+msg_046,mute,scam,"Message asks the user to share or enter a one-time code, a hallmark of credential theft.",0.95,message_0147;message_0148;message_0024
+msg_042,notify,event,The user has a history of engaging with time-sensitive security notices from this group admin.,0.90,message_0058;message_0140;message_0217
+msg_079,mute,scam,"The message demands an OTP to prevent account blocking, matching previous scam attempts designed to steal credentials.",0.95,message_0173;message_0174;message_0369
+msg_098,notify,urgent,The user has a strong history of engaging with urgent medical appointment calls from this contact.,0.95,message_0359;message_0168;message_0226
+msg_037,notify,urgent,The admin sent a time-sensitive operational update about the water tanker requiring immediate action from residents.,0.88,message_0030
+msg_007,digest,event,"The message is a routine society event update with no immediate time pressure, suitable for a digest.",0.88,none
+msg_085,mute,scam,Unverified sender using a lookalike domain instead of the brand's official domain.,0.95,message_0221;message_0023;message_0045
+msg_001,notify,event,"The user has a strong history of engaging with building water supply updates, making this time-sensitive operational notice immediately relevant.",0.90,message_0057;message_0139;message_0240
+msg_021,notify,payment,The user frequently engages with society payment updates and the deadline requires attention today.,0.88,message_0030;message_0068;message_0098
+msg_028,mute,promotion,The user has previously opted out of promotions from this sender and consistently dismisses them.,0.95,message_0034;message_0111;message_0112
+msg_012,mute,forward,The user has previously muted this sender for sharing repetitive forwarded chain messages.,0.95,message_0079;message_0042;message_0080
+msg_064,mute,scam,The user previously reported this sender for similar phishing attempts involving urgent wallet and card verifications.,0.98,message_0024;message_0087;message_0088
+msg_103,notify,personal,The known contact directly asks the user to confirm collection of a held item by a specific time.,0.90,message_0065
+msg_031,notify,urgent,A group admin sent a same-day operational request regarding tonight's sync that requires the user's immediate preparation.,0.88,none
+msg_057,notify,urgent,The sender is an admin asking the user to fix a failing build before updating the client.,0.92,message_0266;message_0041
+msg_087,mute,promotion,The user has previously reported and dismissed unsolicited real estate promotional voice notes from this sender.,0.95,message_0163;message_0164;message_0203
+msg_067,notify,payment,The user frequently engages with official maintenance notices from this sender and the payment deadline is immediate.,0.88,message_0030;message_0067;message_0097
+msg_039,notify,event,A school group admin sent a same-day deadline regarding a field-trip list that requires the user's immediate attention.,0.88,message_0364;message_0365;message_0051
+msg_082,notify,urgent,"An admin urgently requests the user to join the incident bridge for live payment failures, matching past high-priority responses.",0.92,message_0218
+msg_066,mute,promotion,The user previously opted out of promotions from this sender and consistently dismisses their marketing messages.,0.95,message_0187;message_0188;message_0257
+msg_049,notify,business_update,The user is expecting a return pickup today and has a strong history of engaging with Shopee updates.,0.92,message_0154;message_0153;message_0291
+msg_015,mute,scam,"Message asks the user to share or enter a one-time code, a hallmark of credential theft.",0.95,message_0023;message_0045;message_0221
+msg_051,mute,promotion,The user has previously opted out of promotions and consistently dismissed similar messages from this sender.,0.95,message_0257;message_0402;message_0103
+msg_097,digest,personal,"The sender explicitly stated there is nothing urgent, making this casual update suitable for later review.",0.88,message_0054;message_0167;message_0225
+msg_089,notify,business_update,The user needs to retrieve their left-behind water bottle before the 7 PM deadline today.,0.88,none
+msg_053,digest,forward,"The user previously opened similar semiconductor research shares from this group, making it appropriate for a digest.",0.88,message_0161
+msg_059,mute,scam,"Message asks the user to share card, PIN or bank details.",0.95,message_0173;message_0174;message_0221
+msg_024,mute,promotion,The user previously opted out of promotions and consistently dismissed similar messages from this sender.,0.95,message_0257;message_0402;message_0103
+msg_072,mute,scam,"The message uses urgency and a suspicious external link to demand credential verification, characteristic of a phishing scam.",0.95,message_0369
+msg_036,mute,scam,Unverified sender using a lookalike domain instead of the brand's official domain.,0.95,message_0283;message_0127;message_0128
+msg_076,mute,scam,Unverified sender using a lookalike domain instead of the brand's official domain.,0.95,message_0159;message_0160;message_0207
+msg_055,notify,urgent,The sender made an urgent direct request needing the user's attention right now.,0.88,none
+msg_102,notify,urgent,The user has a history of responding to these operational rollback instructions from this sender.,0.91,message_0230;message_0371
+msg_080,notify,urgent,The admin sent a time-sensitive instruction requiring the user to move their car immediately to avoid security relocation.,0.90,message_0030
+msg_093,digest,business_update,"The delivery window has already passed and the message arrived during quiet hours, so it can wait for later.",0.88,none
+msg_034,mute,greeting,The user has a history of muting and dismissing similar forwarded morning greetings from this sender.,0.92,message_0013;message_0014;message_0077
+msg_035,digest,promotion,"Although the user previously opened similar product pitches, this promotional message is non-urgent and can wait.",0.85,message_0281;message_0125;message_0283
+msg_101,digest,personal,"The user frequently opens such check-ins, but it arrived during quiet hours and explicitly states no reply is needed.",0.90,message_0229;message_0370;message_0268
+msg_041,digest,promotion,"The user previously opened a similar survey message, but this non-urgent promotional request can wait.",0.85,message_0137
+msg_011,mute,forward,The user has repeatedly dismissed and muted this sender for sharing repetitive forwarded greetings.,0.95,message_0013;message_0014;message_0077
+msg_110,mute,scam,"Message tries to instruct the notification router itself, which no legitimate sender does.",0.95,message_0238;message_0381;message_0320
+msg_095,mute,scam,"Message tries to instruct the notification router itself, which no legitimate sender does.",0.95,message_0024;message_0087;message_0088
+msg_074,mute,promotion,The user has previously reported this sender for similar real estate promotions and muted the group.,0.95,message_0203;message_0204;message_0163
+msg_073,mute,scam,The message is a phishing attempt matching previous scam patterns reported by the user.,0.95,message_0024;message_0087;message_0088
+msg_054,mute,scam,Message pressures an urgent payment through a link to avoid service loss.,0.95,message_0163;message_0164;message_0203
+msg_068,digest,personal,"The message is a casual book club chat with no urgency, so the user can check the poll later.",0.88,none
+msg_100,notify,urgent,The user frequently responds to urgent escalation alerts from this contact and the timing requires immediate attention.,0.92,message_0228;message_0362
+msg_062,digest,event,"The user has previously engaged with similar routine fire alarm notices, but the message arrived during quiet hours.",0.85,message_0030;message_0043
+msg_096,notify,urgent,The user needs immediate interruption because a stranger reports finding their lost passport at the reception.,0.88,none
+msg_043,digest,event,"The user is active in this group, but the heavily forwarded water tanker notice is time-sensitive and non-urgent enough for a digest.",0.85,message_0030
+msg_077,notify,event,"The user frequently engages with same-day school circulars from this admin, and this time-sensitive request requires immediate action despite quiet hours.",0.91,message_0403;message_0051;message_0364
+msg_081,notify,event,The admin sent a same-day pickup change that the user must act on immediately.,0.90,message_0217
+msg_025,notify,business_update,The user has an active delivery from Amazon and a history of engaging with similar transactional updates.,0.92,message_0004;message_0239;message_0105
+msg_084,mute,promotion,The user has explicitly opted out of promotional offers from this sender and consistently dismisses them.,0.95,message_0220
+msg_022,mute,payment,The user has previously muted this sender due to suspicious payment links and reminders.,0.88,message_0099;message_0100;message_0068
